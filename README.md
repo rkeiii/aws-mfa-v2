@@ -1,7 +1,13 @@
 # Overview 
 If you want to have MFA enabled on your AWS user account and also make use of AWS profiles this script might be for you. The aws-mfa script calls AWS STS and installs the resulting temporary MFA authorized credentials into ~/.aws/credentials. 
 
-This script is intended to be installed in a user's bin directory (~/bin). It has only been tested on Ubuntu 18.04.
+This script is intended to be installed in a user's bin directory (~/bin).
+
+# Requirements
+This script has only been tested on Ubuntu 18.04. It requires Python 3 to be available as python3 on the PATH. It uses the following Python libraries.
+- boto3
+- configparser
+- argparse
 
 # Usage
 ```
