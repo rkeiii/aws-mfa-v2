@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+
+import os
+import configparser
+import boto3
+import argparse
+
+parser = argparse.ArgumentParser(description="Obtain and make available temporary AWS credentials")
+parser.add_argument(
+    "mfa_profile",
+    type=str,
+    help="Named AWS profile containg the mfa_serial for use in obtaining temporary credentials."
+)
+parser.add_argument("token", type=str, help="Six digit token code from your MFA device")
+args = parser.parse_args()
+
+aws_creds_path = "%s/.aws/credentials" % os.environ["HOME"]
+aws_config_path = "%s/.aws/config" % os.environ["HOME"]
+
+creds = configparser.ConfigParser()
+config = configparser.ConfigParser()
+
+creds.read(aws_creds_path)
+config.read(aws_config_path)
+
+# confirm we have a valid configuration section
+if "profile %s" % args.mfa_profile not in config.sections():
+    raise ValueError("AWS profile %s not found in ~/.aws/config" % args.mfa_profile)
+
+# confirm the specified AWS contains an mfa_serial parameter
+if "mfa_serial" not in config["profile %s" % args.mfa_profile]:
+    raise ValueError("AWS profile %s does not contain an mfa_serial parameter" % args.mfa_profile)
+
+# use STS to obtain temp creds
+session = boto3.Session(profile_name=args.mfa_profile)
+client = session.client('sts')
+response = client.get_session_token(
+    SerialNumber=config["profile %s" % args.mfa_profile]["mfa_serial"],
+    TokenCode=args.token
+)
+
+# append STS temp creds to creds dict
+creds["%s-mfa" % args.mfa_profile] = {}
+creds["%s-mfa" % args.mfa_profile]["aws_access_key_id"] = response["Credentials"]["AccessKeyId"]
+creds["%s-mfa" % args.mfa_profile]["aws_secret_access_key"] = response["Credentials"]["SecretAccessKey"]
+creds["%s-mfa" % args.mfa_profile]["aws_session_token"] = response["Credentials"]["SessionToken"]
+
+# write out our newly obtained STS temp creds
+with open(aws_creds_path, 'w') as credsfile:
+    creds.write(credsfile)
