@@ -18,7 +18,7 @@ optional arguments:
   -h, --help   show this help message and exit
 ```
 
-# Example
+# Basic example
 Steps to run
 1. Install the aws-mfa script from this repository into ~/bin and make it executable (also ensure ~/bin is on your PATH)
 2. Call aws-mfa providing it the name of an existing named AWS profile and a valid MFA token code
@@ -29,4 +29,27 @@ aws-mfa existing-profile-name 123456
 4. Try calling an AWS service using the new named profile created by the script. Following the example above:
 ```
 aws s3 ls --profile existing-profile-name-mfa
+```
+
+# Configuration example to assume a role that requires MFA 
+Following the basic example above, here's example content for ~/.aws/config
+```
+# This is the user we use to obtain temporary credentials from AWS STS
+[profile existing-profile-name]
+mfa_serial = arn:aws:iam::123456789012:mfa/existing-user
+region = us-east-1
+
+# This profile name should match the credential name the aws-mfa script added to ~/.aws/credentials
+[profile existing-profile-name-mfa]
+source_profile = existing-profile-name 
+
+# A role (in this case in a different AWS account which requires MFA
+[profile role-requiring-mfa]
+source_profile = existing-profile-name-mfa 
+role_arn = arn:aws:iam::098765432101:role/OrganizationAccountAccessRole
+```
+
+Once the configuration has been added you can use the role normally, ie:
+```
+aws s3 ls --profile role-requiring-mfa
 ```
