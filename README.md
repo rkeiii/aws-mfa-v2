@@ -9,6 +9,11 @@ This script has only been tested on Ubuntu 18.04. It requires Python 3 to be ava
 - configparser
 - argparse
 
+You can install all of the required libraries globally by executing the following command inside the root of your cloned repo.
+```
+sudo python3 -m pip install -r requirements.txt
+```
+
 # Usage
 ```
 usage: aws-mfa [-h] mfa_profile token
