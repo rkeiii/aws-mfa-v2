@@ -12,6 +12,7 @@ parser.add_argument(
     help="Named AWS profile containg the mfa_serial for use in obtaining temporary credentials."
 )
 parser.add_argument("token", type=str, help="Six digit token code from your MFA device")
+parser.add_argument("--duration", type=int, default="43200", help="STS token duration in seconds to request")
 args = parser.parse_args()
 
 aws_creds_path = "%s/.aws/credentials" % os.environ["HOME"]
@@ -36,7 +37,8 @@ session = boto3.Session(profile_name=args.mfa_profile)
 client = session.client('sts')
 response = client.get_session_token(
     SerialNumber=config["profile %s" % args.mfa_profile]["mfa_serial"],
-    TokenCode=args.token
+    TokenCode=args.token,
+    DurationSeconds=args.duration
 )
 
 # append STS temp creds to creds dict
