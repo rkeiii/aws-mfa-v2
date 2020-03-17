@@ -16,17 +16,18 @@ sudo python3 -m pip install -r requirements.txt
 
 # Usage
 ```
-usage: aws-mfa [-h] mfa_profile token
+usage: aws-mfa [-h] [--duration DURATION] mfa_profile token
 
 Obtain and make available temporary AWS credentials
 
 positional arguments:
-  mfa_profile  Named AWS profile containg the mfa_serial for use in obtaining
-               temporary credentials.
-  token        Six digit token code from your MFA device
+  mfa_profile          Named AWS profile containg the mfa_serial for use in
+                       obtaining temporary credentials.
+  token                Six digit token code from your MFA device
 
 optional arguments:
-  -h, --help   show this help message and exit
+  -h, --help           show this help message and exit
+  --duration DURATION  STS token duration in seconds to request
 ```
 
 # Basic example
