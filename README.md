@@ -27,7 +27,8 @@ positional arguments:
 
 optional arguments:
   -h, --help           show this help message and exit
-  --duration DURATION  STS token duration in seconds to request
+  --duration DURATION  STS token duration in seconds to request, defaults to
+                       12 hours
 ```
 
 # Basic example
