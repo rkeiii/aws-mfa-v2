@@ -50,7 +50,7 @@ Steps to run
 1. Install the aws-mfa script from this repository into ~/bin and make it executable (also ensure ~/bin is on your PATH)
 2. Call aws-mfa providing it the name of an existing named AWS profile and a valid MFA token code
 ```
-aws-mfa existing-profile-name 123456 
+aws-mfa --mfa-profile existing-profile-name --token 123456 
 ```
 3. Examine ~/.aws/credentials and see the newly added temporary credentials. Note: The script will insert the temporary STS credentials into a new named profile based on the named profile provided as the first positional argument to this script with "-mfa" appended. 
 4. Try calling an AWS service using the new named profile created by the script. Following the example above:
