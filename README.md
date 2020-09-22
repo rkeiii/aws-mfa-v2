@@ -17,18 +17,17 @@ sudo python3 -m pip install -r requirements.txt
 
 # Usage
 ```
-usage: aws-mfa [-h] [--token TOKEN] [--yk-oath-credential YK_OATH_CREDENTIAL]
-               [--duration DURATION] [--write-env-file]
-               mfa_profile
+usage: aws-mfa [-h] [--mfa-profile MFA_PROFILE] [--token TOKEN]
+               [--yk-oath-credential YK_OATH_CREDENTIAL] [--duration DURATION]
+               [--write-env-file]
 
 Obtain and make available temporary AWS credentials
 
-positional arguments:
-  mfa_profile           Named AWS profile containg the mfa_serial for use in
-                        obtaining temporary credentials.
-
 optional arguments:
   -h, --help            show this help message and exit
+  --mfa-profile MFA_PROFILE
+                        Named AWS profile containg the mfa_serial for use in
+                        obtaining temporary credentials.
   --token TOKEN         Six digit token code from your MFA device
   --yk-oath-credential YK_OATH_CREDENTIAL
                         For use with a YubiKey. YubiKey Manager OATH
@@ -36,6 +35,14 @@ optional arguments:
   --duration DURATION   STS token duration in seconds to request, defaults to
                         12 hours
   --write-env-file      Write temp MFA AWS credentials to ~/.aws-mfa
+```
+
+# Environment Variables
+The following environment variables can be used to provide configuration
+```
+AWS_MFA_YK_OATH_CREDENTIAL - See --yk-oath-credential
+AWS_MFA_DURATION - See --duration
+AWS_MFA_WRITE_ENV_FILE - See --write-env-file
 ```
 
 # Basic example
