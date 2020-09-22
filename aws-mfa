@@ -1,52 +1,152 @@
 #!/usr/bin/env python3
 
-import os
-import configparser
-import boto3
 import argparse
+import os
+import sys
+from configparser import ConfigParser
+from shutil import which
+from subprocess import PIPE, run
 
-parser = argparse.ArgumentParser(description="Obtain and make available temporary AWS credentials")
-parser.add_argument(
-    "mfa_profile",
-    type=str,
-    help="Named AWS profile containg the mfa_serial for use in obtaining temporary credentials."
-)
-parser.add_argument("token", type=str, help="Six digit token code from your MFA device")
-parser.add_argument("--duration", type=int, default="43200", help="STS token duration in seconds to request, defaults to 12 hours")
-args = parser.parse_args()
+import boto3
 
-aws_creds_path = "%s/.aws/credentials" % os.environ["HOME"]
-aws_config_path = "%s/.aws/config" % os.environ["HOME"]
 
-creds = configparser.ConfigParser()
-config = configparser.ConfigParser()
+def main(argv):
+    """Main function parses arguments and calls STS"""
 
-creds.read(aws_creds_path)
-config.read(aws_config_path)
+    aws_creds_path = f"{os.environ['HOME']}/.aws/credentials"
+    aws_config_path = f"{os.environ['HOME']}/.aws/config"
 
-# confirm we have a valid configuration section
-if "profile %s" % args.mfa_profile not in config.sections():
-    raise ValueError("AWS profile %s not found in ~/.aws/config" % args.mfa_profile)
+    args = parse_args()
+    mfa_profile = f"{args.mfa_profile}-mfa"
 
-# confirm the specified AWS contains an mfa_serial parameter
-if "mfa_serial" not in config["profile %s" % args.mfa_profile]:
-    raise ValueError("AWS profile %s does not contain an mfa_serial parameter" % args.mfa_profile)
+    config = load_aws_config(aws_config_path)
+    validate_aws_profile(args, config)
+    creds = obtain_mfa_creds(args, get_token(args), config, aws_creds_path, mfa_profile)
+    write_creds(aws_creds_path, creds, args, mfa_profile)
 
-# use STS to obtain temp creds
-session = boto3.Session(profile_name=args.mfa_profile)
-client = session.client('sts')
-response = client.get_session_token(
-    SerialNumber=config["profile %s" % args.mfa_profile]["mfa_serial"],
-    TokenCode=args.token,
-    DurationSeconds=args.duration
-)
 
-# append STS temp creds to creds dict
-creds["%s-mfa" % args.mfa_profile] = {}
-creds["%s-mfa" % args.mfa_profile]["aws_access_key_id"] = response["Credentials"]["AccessKeyId"]
-creds["%s-mfa" % args.mfa_profile]["aws_secret_access_key"] = response["Credentials"]["SecretAccessKey"]
-creds["%s-mfa" % args.mfa_profile]["aws_session_token"] = response["Credentials"]["SessionToken"]
+def get_token(args):
+    """Get token from CLI or YubiKey"""
 
-# write out our newly obtained STS temp creds
-with open(aws_creds_path, 'w') as credsfile:
-    creds.write(credsfile)
+    if args.token is None and ykey_is_present(args):
+        result = run(['ykman', 'oath', 'code', '--single', args.yk_oath_credential], stdout=PIPE, check=True)
+        return result.stdout.decode("utf-8").rstrip()
+    elif isinstance(args.token, str):
+        return args.token
+    else:
+        raise RuntimeError("No oath credential or token code provided, exiting.")
+
+
+def write_creds(aws_creds_path, creds, args, mfa_profile):
+    """Write out temp AWS credentials obtained from STS"""
+
+    # write out our newly obtained STS temp creds
+    with open(aws_creds_path, 'w') as credsfile:
+        creds.write(credsfile)
+
+    # write out our STS temp creds to environment file if requested
+    if args.write_env_file:
+        with open(f"{os.environ['HOME']}/.aws-mfa", 'w') as envfile:
+            envfile.write(f'export AWS_ACCESS_KEY_ID={creds[mfa_profile]["aws_access_key_id"]}\n')
+            envfile.write(f'export AWS_SECRET_ACCESS_KEY={creds[mfa_profile]["aws_secret_access_key"]}\n')
+            envfile.write(f'export AWS_SESSION_TOKEN={creds[mfa_profile]["aws_session_token"]}\n')
+
+
+def load_aws_config(aws_config_path):
+    """Loads the AWS configuration from specified file"""
+
+    config = ConfigParser()
+    config.read(aws_config_path)
+
+    return config
+
+
+def obtain_mfa_creds(args, token, config, aws_creds_path, mfa_profile):
+    """Call AWS STS to obtain temporary MFA credentials"""
+
+    # use STS to obtain temp creds
+    session = boto3.Session(profile_name=args.mfa_profile)
+    client = session.client('sts')
+    response = client.get_session_token(
+        SerialNumber=config[f"profile {args.mfa_profile}"]['mfa_serial'],
+        TokenCode=token,
+        DurationSeconds=args.duration
+    )
+
+    creds = ConfigParser()
+    
+    creds.read(aws_creds_path)
+
+    # append STS temp creds to creds dict
+    creds[mfa_profile] = {}
+    creds[mfa_profile]["aws_access_key_id"] = response["Credentials"]["AccessKeyId"]
+    creds[mfa_profile]["aws_secret_access_key"] = response["Credentials"]["SecretAccessKey"]
+    creds[mfa_profile]["aws_session_token"] = response["Credentials"]["SessionToken"]
+
+    return creds
+
+
+def validate_aws_profile(args, config):
+    """Validate the AWS profile provided"""
+
+    # confirm we have a valid configuration section
+    if f"profile {args.mfa_profile}" not in config.sections():
+        raise ValueError(f"AWS profile {args.mfa_profile} not found in ~/.aws/config")
+
+    # confirm the specified AWS contains an mfa_serial parameter
+    if "mfa_serial" not in config[f"profile {args.mfa_profile}"]:
+        raise ValueError(f"AWS profile {args.mfa_profile} does not contain an mfa_serial parameter")
+
+
+def ykey_is_present(args):
+    """Check if a YubiKey is present"""
+
+    if ykman_is_installed():
+        # find any attached YubiKeys
+        result = run(['ykman', 'list'], stdout=PIPE, check=True)
+        ykey_count = len(result.stdout.decode("utf-8").split("\n")) -1
+
+        if ykey_count > 1:
+            raise RuntimeError("Multiple YubiKey's detected, exiting")
+    elif not ykman_is_installed() and args.yk_oath_credential is not None:
+        raise RuntimeError("Missing required ykman command, existing")
+    else:
+        return False
+
+    return True
+
+
+def ykman_is_installed():
+    """Check if ykman utility is installed"""
+
+    return which("ykman") is not None
+
+
+def parse_args():
+    """Parse arguments"""
+
+    description = "Obtain and make available temporary AWS credentials"
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        "mfa_profile",
+        type=str,
+        help="Named AWS profile containg the mfa_serial for use in obtaining temporary credentials."
+    )
+
+    token_help = "Six digit token code from your MFA device"
+    parser.add_argument("--token", type=str, help=token_help)
+
+    oath_help = "For use with a YubiKey. YubiKey Manager OATH credential to use (see 'ykman oath list' output)"
+    parser.add_argument("--yk-oath-credential", type=str, help=oath_help)
+
+    duration_help = "STS token duration in seconds to request, defaults to 12 hours"
+    parser.add_argument("--duration", type=int, default="43200", help=duration_help)
+
+    env_help = "Write temp MFA AWS credentials to ~/.aws-mfa"
+    parser.add_argument("--write-env-file", action="store_true", help=env_help)
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    main(sys.argv)

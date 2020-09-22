@@ -8,6 +8,7 @@ This script has only been tested on Ubuntu 18.04. It requires Python 3 to be ava
 - boto3
 - configparser
 - argparse
+- YubiKey Manager CLI (needed for YubiKey support)
 
 You can install all of the required libraries globally by executing the following command inside the root of your cloned repo.
 ```
@@ -16,19 +17,25 @@ sudo python3 -m pip install -r requirements.txt
 
 # Usage
 ```
-usage: aws-mfa [-h] [--duration DURATION] mfa_profile token
+usage: aws-mfa [-h] [--token TOKEN] [--yk-oath-credential YK_OATH_CREDENTIAL]
+               [--duration DURATION] [--write-env-file]
+               mfa_profile
 
 Obtain and make available temporary AWS credentials
 
 positional arguments:
-  mfa_profile          Named AWS profile containg the mfa_serial for use in
-                       obtaining temporary credentials.
-  token                Six digit token code from your MFA device
+  mfa_profile           Named AWS profile containg the mfa_serial for use in
+                        obtaining temporary credentials.
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --duration DURATION  STS token duration in seconds to request, defaults to
-                       12 hours
+  -h, --help            show this help message and exit
+  --token TOKEN         Six digit token code from your MFA device
+  --yk-oath-credential YK_OATH_CREDENTIAL
+                        For use with a YubiKey. YubiKey Manager OATH
+                        credential to use (see 'ykman oath list' output)
+  --duration DURATION   STS token duration in seconds to request, defaults to
+                        12 hours
+  --write-env-file      Write temp MFA AWS credentials to ~/.aws-mfa
 ```
 
 # Basic example
@@ -65,4 +72,13 @@ role_arn = arn:aws:iam::098765432101:role/OrganizationAccountAccessRole
 Once the configuration has been added you can use the role normally, ie:
 ```
 aws s3 ls --profile role-requiring-mfa
+```
+
+# YubiKey Support
+Loading 6 digit tokens directly from a YubiKey is supported. You will need to provide the --yk-oath-credential argument.
+A list of valid values can be found by running `ykman list`.
+
+Example command to load an MFA token directly from a YubiKey:
+```
+aws-mfa bks-rone --yk-oath-credential "Amazon Web Services:rone-cli@bookshare
 ```
