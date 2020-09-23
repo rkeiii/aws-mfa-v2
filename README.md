@@ -8,7 +8,7 @@ This script has only been tested on Ubuntu 18.04. It requires Python 3 to be ava
 - boto3
 - configparser
 - argparse
-- YubiKey Manager CLI (needed for YubiKey support)
+- [YubiKey Manager CLI](https://github.com/Yubico/yubikey-manager) (needed for YubiKey support)
 
 You can install all of the required libraries globally by executing the following command inside the root of your cloned repo.
 ```
