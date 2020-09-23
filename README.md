@@ -1,5 +1,5 @@
 # Overview 
-If you want to have MFA enabled on your AWS user account and also make use of AWS profiles this script might be for you. The aws-mfa script calls AWS STS and installs the resulting temporary MFA authorized credentials into ~/.aws/credentials. 
+If you want to have MFA enabled on your AWS user account and also make use of AWS profiles this script might be for you. It also supports automatically obtaining 6 digit OATH codes from your YubiKey via ykman (see --yk-oath-credential argument). The aws-mfa script calls AWS STS using either the provided token or obtains one from a YubiKey and installs the resulting temporary MFA authorized credentials from AWS STS into ~/.aws/credentials. 
 
 This script is intended to be installed in a user's bin directory (~/bin).
 
