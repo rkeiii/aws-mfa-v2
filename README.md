@@ -83,9 +83,9 @@ aws s3 ls --profile role-requiring-mfa
 
 # YubiKey Support
 Loading OATH tokens directly from a YubiKey is supported. You will need to provide the --yk-oath-credential argument or equivalent environment variable.
-A list of valid values can be found by running `ykman list`.
+A list of valid values can be found by running `ykman oath list`.
 
 Example command to load an MFA token directly from a YubiKey:
 ```
-aws-mfa bks-rone --yk-oath-credential "Amazon Web Services:rone-cli@bookshare
+aws-mfa bks-rone --yk-oath-credential "Amazon Web Services:rone-cli@bookshare"
 ```
