@@ -1,5 +1,5 @@
 # Overview 
-This scripts purpose is life is to make it faster and easier to call AWS STS to obtain temporary AWS credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). The 6 digit OATH tokens can either be provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing OATH credentials stored on your YubiKey can be found using the `ykman list` assuming the you the [YubiKey Manager CLI](https://github.com/Yubico/yubikey-manager) installed.
+This scripts purpose is life is to make it faster and easier to call AWS STS to obtain temporary AWS credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). The 6 digit OATH tokens can either be provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing OATH credentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/yubikey-manager) installed.
 
 This script is intended to be installed in a user's bin directory (~/bin).
 
