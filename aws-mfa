@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from configparser import ConfigParser
+from pathlib import Path
 from shutil import which
 from subprocess import PIPE, run
 
@@ -46,7 +47,12 @@ def write_creds(aws_creds_path, creds, args, mfa_profile):
 
     # write out our STS temp creds to environment file if requested
     if args.write_env_file:
-        with open(f"{os.environ['HOME']}/.aws-mfa", 'w') as envfile:
+        aws_mfa_path = f"{os.environ['HOME']}/.aws-mfa"
+        # make sure file exists
+        Path(aws_mfa_path).touch()
+        # secure it because we're putting credentials in it
+        os.chmod(aws_mfa_path, 0o600)
+        with open(aws_mfa_path, 'w') as envfile:
             envfile.write(f'export AWS_ACCESS_KEY_ID={creds[mfa_profile]["aws_access_key_id"]}\n')
             envfile.write(f'export AWS_SECRET_ACCESS_KEY={creds[mfa_profile]["aws_secret_access_key"]}\n')
             envfile.write(f'export AWS_SESSION_TOKEN={creds[mfa_profile]["aws_session_token"]}\n')
@@ -108,6 +114,8 @@ def ykey_is_present(args):
 
         if ykey_count > 1:
             raise RuntimeError("Multiple YubiKey's detected, exiting")
+        elif ykey_count < 1:
+            raise RuntimeError("No YubiKey detected, exiting")
     elif not ykman_is_installed() and args.yk_oath_credential is not None:
         raise RuntimeError("Missing required ykman command, existing")
     else:
