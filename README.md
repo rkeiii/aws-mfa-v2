@@ -19,7 +19,7 @@ sudo python3 -m pip install -r requirements.txt
 ```
 usage: aws-mfa [-h] [--mfa-profile MFA_PROFILE] [--token TOKEN]
                [--yk-oath-credential YK_OATH_CREDENTIAL] [--duration DURATION]
-               [--write-env-file]
+               [--write-env-file] [--force-refresh]
 
 Obtain and make available temporary AWS credentials
 
@@ -35,6 +35,8 @@ optional arguments:
   --duration DURATION   STS token duration in seconds to request, defaults to
                         12 hours
   --write-env-file      Write temp MFA AWS credentials to ~/.aws-mfa
+  --force-refresh       Force a refresh even if the existing credentials are
+                        not yet expired
 ```
 
 # Environment Variables

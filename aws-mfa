@@ -27,17 +27,24 @@ def main(argv):
 
     creds = ConfigParser()
     creds.read(aws_creds_path)
-    expiration = credentials_expired(creds, mfa_profile)
-    if isinstance(expiration, datetime) and not args.force_refresh:
-        local_expiration = str(utc_to_local(expiration))
-        print(f"Credentials for profile {mfa_profile} do not expire until {local_expiration}, exiting without refreshing")
-        sys.exit(0)
+
+    # check if credentials are expired if --force-refresh is not set
+    if not args.force_refresh:
+        expiration = credentials_expired(creds, mfa_profile)
+        if isinstance(expiration, datetime):
+            local_expiration = str(utc_to_local(expiration))
+            print(f"Credentials for profile {mfa_profile} do not expire until {local_expiration}, exiting without refreshing")
+            sys.exit(0)
 
     creds = obtain_mfa_creds(args, creds, config, mfa_profile)
     write_creds(aws_creds_path, creds, args, mfa_profile)
 
+
 def utc_to_local(utc_dt):
+    """Convert UTC datetime to local datetime"""
+
     return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+
 
 def credentials_expired(creds, mfa_profile):
     if mfa_profile in creds:
@@ -179,7 +186,7 @@ def parse_args():
     env_help = "Write temp MFA AWS credentials to ~/.aws-mfa"
     parser.add_argument("--write-env-file", action="store_true", help=env_help)
 
-    refresh_help = "Force a credential refresh even if they're not yet expired"
+    refresh_help = "Force a refresh even if the existing credentials are not yet expired"
     parser.add_argument("--force-refresh", action="store_true", help=refresh_help)
 
     return parser.parse_args()
