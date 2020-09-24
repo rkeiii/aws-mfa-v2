@@ -4,11 +4,13 @@ import argparse
 import os
 import sys
 from configparser import ConfigParser
+from datetime import datetime, timezone
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, run
 
 import boto3
+from dateutil import parser
 
 
 def main(argv):
@@ -22,9 +24,39 @@ def main(argv):
 
     config = load_aws_config(aws_config_path)
     validate_aws_profile(args, config)
-    creds = obtain_mfa_creds(args, get_token(args), config, aws_creds_path, mfa_profile)
+
+    creds = ConfigParser()
+    creds.read(aws_creds_path)
+
+    # check if credentials are expired if --force-refresh is not set
+    if not args.force_refresh:
+        expiration = credentials_expired(creds, mfa_profile)
+        if isinstance(expiration, datetime):
+            local_expiration = str(utc_to_local(expiration))
+            print(f"Credentials for profile {mfa_profile} do not expire until {local_expiration}, exiting without refreshing")
+            sys.exit(0)
+
+    creds = obtain_mfa_creds(args, creds, config, mfa_profile)
     write_creds(aws_creds_path, creds, args, mfa_profile)
 
+
+def utc_to_local(utc_dt):
+    """Convert UTC datetime to local datetime"""
+
+    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+
+
+def credentials_expired(creds, mfa_profile):
+    if mfa_profile in creds:
+        if "expiration" in creds[mfa_profile]:
+            expiration = parser.isoparse(creds[mfa_profile]["expiration"])
+            now = datetime.utcnow()
+            now = now.replace(tzinfo=timezone.utc)
+            if expiration < now:
+                return True
+            else:
+                return expiration
+    return False
 
 def get_token(args):
     """Get token from CLI or YubiKey"""
@@ -67,7 +99,7 @@ def load_aws_config(aws_config_path):
     return config
 
 
-def obtain_mfa_creds(args, token, config, aws_creds_path, mfa_profile):
+def obtain_mfa_creds(args, creds, config, mfa_profile):
     """Call AWS STS to obtain temporary MFA credentials"""
 
     # use STS to obtain temp creds
@@ -75,19 +107,19 @@ def obtain_mfa_creds(args, token, config, aws_creds_path, mfa_profile):
     client = session.client('sts')
     response = client.get_session_token(
         SerialNumber=config[f"profile {args.mfa_profile}"]['mfa_serial'],
-        TokenCode=token,
+        TokenCode=get_token(args),
         DurationSeconds=args.duration
     )
 
-    creds = ConfigParser()
-    
-    creds.read(aws_creds_path)
+    local_expiration = utc_to_local(response['Credentials']['Expiration'])
+    print(f"Refreshed credentials for profile {mfa_profile}, they will expire at {local_expiration}")
 
     # append STS temp creds to creds dict
     creds[mfa_profile] = {}
     creds[mfa_profile]["aws_access_key_id"] = response["Credentials"]["AccessKeyId"]
     creds[mfa_profile]["aws_secret_access_key"] = response["Credentials"]["SecretAccessKey"]
     creds[mfa_profile]["aws_session_token"] = response["Credentials"]["SessionToken"]
+    creds[mfa_profile]["expiration"] = response["Credentials"]["Expiration"].isoformat()
 
     return creds
 
@@ -153,6 +185,9 @@ def parse_args():
 
     env_help = "Write temp MFA AWS credentials to ~/.aws-mfa"
     parser.add_argument("--write-env-file", action="store_true", help=env_help)
+
+    refresh_help = "Force a refresh even if the existing credentials are not yet expired"
+    parser.add_argument("--force-refresh", action="store_true", help=refresh_help)
 
     return parser.parse_args()
 
