@@ -4,7 +4,7 @@ This scripts purpose is life is to make it faster and easier to call AWS STS to 
 This script is intended to be installed in a user's bin directory (~/bin).
 
 # Requirements
-This script has only been tested on Ubuntu 18.04. It requires Python 3 to be available as python3 on the PATH. It uses the following Python libraries.
+This script has only been tested on Ubuntu 18.04. It requires Python 3.6+ to be available as python3 on the PATH. It uses the following Python libraries.
 - boto3
 - configparser
 - argparse
