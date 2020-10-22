@@ -177,8 +177,12 @@ def parse_args():
     token_help = "Six digit token code from your MFA device"
     parser.add_argument("--token", type=str, help=token_help)
 
+    try:
+        yk_oath_credential = os.environ["AWS_MFA_YK_OATH_CREDENTIAL"]
+    except KeyError:
+        yk_oath_credential = None
     oath_help = "For use with a YubiKey. YubiKey Manager OATH credential to use (see 'ykman oath list' output)"
-    parser.add_argument("--yk-oath-credential", type=str, default=os.environ["AWS_MFA_YK_OATH_CREDENTIAL"], help=oath_help)
+    parser.add_argument("--yk-oath-credential", type=str, default=yk_oath_credential, help=oath_help)
 
     duration_help = "STS token duration in seconds to request, defaults to 12 hours"
     parser.add_argument("--duration", type=int, default="43200" if "AWS_MFA_DURATION" not in os.environ else os.environ["AWS_MFA_DURATION"], help=duration_help)
