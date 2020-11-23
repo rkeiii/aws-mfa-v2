@@ -12,15 +12,15 @@ from subprocess import PIPE, run
 import boto3
 from dateutil import parser
 
-AWS_CREDS_PATH = f"{os.environ['HOME']}/.aws/credentials"
-AWS_CONFIG_PATH = f"{os.environ['HOME']}/.aws/config"
-ENV_FILE_PATH = f"{os.environ['HOME']}/.aws-mfa"
-
 class AwsMfa():
+
     def __init__(self):
         '''
         Prepare class instance for use but don't do anything yet
         '''
+        self.aws_creds_path = f"{os.environ['HOME']}/.aws/credentials"
+        self.aws_config_path = f"{os.environ['HOME']}/.aws/config"
+        self.env_file_path = f"{os.environ['HOME']}/.aws-mfa"
 
         # parse command line args
         self.args = self._parse_args()
@@ -30,7 +30,8 @@ class AwsMfa():
         self.mfa_profile_name = f'{self.profile_name}-mfa'
         self.prefixd_profile_name = f'profile {self.profile_name}'
         self.prefixd_mfa_profile_name = f'profile {self.mfa_profile_name}'
-        self.config = self._load_config(AWS_CONFIG_PATH)
+        self.config = self._load_config(self.aws_config_path)
+        
         self.profile = self.config[self.prefixd_profile_name]
         
         # validate the aws profile that was specified
@@ -38,7 +39,7 @@ class AwsMfa():
 
         # either load existing mfa creds or obtain new ones from sts
         # load AWS creds file
-        self.creds = self._load_config(AWS_CREDS_PATH)
+        self.creds = self._load_config(self.aws_creds_path)
 
     @staticmethod
     def recursive_get_config_param(config, profile_name, param_name):
@@ -50,7 +51,10 @@ class AwsMfa():
         if param_name in profile:
             return profile[param_name]
         elif param_name not in profile and 'source_profile' in profile:
-            return AwsMfa.recursive_get_config_param(config, f"profile {profile['source_profile']}", param_name)
+            if profile['source_profile'] != 'default':
+                return AwsMfa.recursive_get_config_param(config, f"profile {profile['source_profile']}", param_name)
+            else:
+                return AwsMfa.recursive_get_config_param(config, profile['source_profile'], param_name)
         else:
             return None
 
@@ -76,10 +80,10 @@ class AwsMfa():
         Write out a file containing the specified creds as environment variables
         '''
         # make sure file exists
-        Path(ENV_FILE_PATH).touch()
+        Path(self.env_file_path).touch()
         # secure it because we're putting credentials in it
-        os.chmod(ENV_FILE_PATH, 0o600)
-        with open(ENV_FILE_PATH, 'w') as envfile:
+        os.chmod(self.env_file_path, 0o600)
+        with open(self.env_file_path, 'w') as envfile:
             envfile.write(f"export AWS_ACCESS_KEY_ID={self.creds[self.mfa_profile_name]['aws_access_key_id']}\n")
             envfile.write(f"export AWS_SECRET_ACCESS_KEY={self.creds[self.mfa_profile_name]['aws_secret_access_key']}\n")
             envfile.write(f"export AWS_SESSION_TOKEN={self.creds[self.mfa_profile_name]['aws_session_token']}\n")
@@ -108,30 +112,44 @@ class AwsMfa():
     def _get_argument(self, arg_name, required=False):
         env_var_name = 'AWS_MFA_' + arg_name.upper()
         args_as_dict = vars(self.args)
+        avail_sources = 0
+        arg = None
 
-        if arg_name in args_as_dict:
+        if arg_name in args_as_dict and args_as_dict[arg_name] is not None:
             # load arg from CLI args
-            return args_as_dict[arg_name]
-        elif env_var_name in os.environ:
+            arg = args_as_dict[arg_name]
+            avail_sources += 1
+        
+        if env_var_name in os.environ:
             # load arg from env var
-            return os.environ[env_var_name]
-        elif AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name) is not None:
+            arg = os.environ[env_var_name]
+            avail_sources += 1
+        
+        if AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name) is not None:
             # load arg from config profile
-            return AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name)
-        else:
-            if required:
-                raise ValueError(f'Required argument {arg_name} not found on CLI, in environmenbt or in configured profile')
+            arg = AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name)
+            if arg is not None:
+                avail_sources += 1
+        
+        if required and avail_sources == 0:
+            raise ValueError(f'Required argument {arg_name} not found on CLI, in environmenbt or in configured profile')
             
-            return None
+        if avail_sources > 1:
+            raise RuntimeError(f'Argument {arg_name} is provided more than once')
+        
+        return arg
+
+    def _get_ykey_token(self, yk_oath_credential):
+        result = run(['ykman', 'oath', 'code', '--single', yk_oath_credential], stdout=PIPE, check=True)
+        return result.stdout.decode('utf-8').rstrip()
 
     def _get_token(self):
         '''
         Get token from CLI or YubiKey
         '''
         if self.args.token is None and self._ykey_is_present():
-            yk_oath_credential = AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'yk_oath_credential')
-            result = run(['ykman', 'oath', 'code', '--single', yk_oath_credential], stdout=PIPE, check=True)
-            return result.stdout.decode('utf-8').rstrip()
+            yk_oath_credential = self._get_argument('yk_oath_credential')
+            return self._get_ykey_token(yk_oath_credential)
         elif isinstance(self.args.token, str):
             return self.args.token
         else:
@@ -142,7 +160,7 @@ class AwsMfa():
         Write out temp AWS credentials obtained from STS
         '''
         # write out our newly obtained STS temp creds
-        with open(AWS_CREDS_PATH, 'w') as credsfile:
+        with open(self.aws_creds_path, 'w') as credsfile:
             self.creds.write(credsfile)
 
     def _load_config(self, config_path):
@@ -174,8 +192,8 @@ class AwsMfa():
         '''
         # assume if we were passed a role that our parent profile should be used to intiate the session
         if 'role_arn' in self.profile and 'source_profile' in self.profile:
-            profile = self.config[f"profile {self.profile['source_profile']}"]
-            session_profile_name = self.profile['source_profile']
+            parent_profile = self.config[f"profile {self.profile['source_profile']}"]
+            session_profile_name = parent_profile['source_profile']
         else:
             session_profile_name = self.profile_name
 
@@ -185,10 +203,16 @@ class AwsMfa():
             client = session.client('sts')
         else:
             client = sts_client
+        
+        if self._get_argument('duration') is not None:
+            duration = int(self._get_argument('duration'))
+        else:
+            duration = 43200
+
         response = client.get_session_token(
             SerialNumber=AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
             TokenCode=self._get_token(),
-            DurationSeconds=self._get_argument('duration')
+            DurationSeconds=duration
         )
 
         local_expiration = self._utc_to_local(response['Credentials']['Expiration'])
@@ -215,23 +239,20 @@ class AwsMfa():
         if AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial') is None:
             raise ValueError(f"AWS profile {self.args.mfa_profile} nor it's ancestors contain an mfa_serial parameter")
 
-        # profile = self.config[f'profile {self.profile_name}']
-        # if self.args.mfa_profile is None and AwsMfa.recursive_get_config_param(profile, 'yk_oath_credential') is None
-
-    def _ykey_is_present(self):
+    def _ykey_is_present(self, ykey_count=None):
         '''
         Check if a YubiKey is present
         '''
         if self._ykman_is_installed():
             # find any attached YubiKeys
             result = run(['ykman', 'list'], stdout=PIPE, check=True)
-            ykey_count = len(result.stdout.decode('utf-8').split('\n')) -1
+            
+            if ykey_count is None:
+                ykey_count = len(result.stdout.decode('utf-8').split('\n')) -1
 
             if ykey_count > 1:
-                raise RuntimeError("Multiple YubiKey's detected, exiting")
-            elif ykey_count < 1:
-                raise RuntimeError('No YubiKey detected, exiting')
-        elif not self._ykman_is_installed() and self.args.yk_oath_credential is not None:
+                raise RuntimeError("Multiple YubiKey's detected, exiting becuase this is unsupported")
+        elif not self._ykman_is_installed() and self._get_argument('yk_oath_credential') is not None:
             raise RuntimeError('Missing required ykman command, exiting')
         else:
             return False
@@ -269,9 +290,9 @@ class AwsMfa():
         parser.add_argument('--yk-oath-credential', type=str, default=None, help=oath_help)
 
         duration_help = 'STS token duration in seconds to request, defaults to 12 hours'
-        parser.add_argument('--duration', type=int, default='43200', help=duration_help)
+        parser.add_argument('--duration', type=int, help=duration_help)
 
-        env_help = 'Write temp MFA AWS credentials to ~/.aws-mfa'
+        env_help = 'Write the temp MFA credentials for hte profile specified in --mfa-profile out to ~/.aws-mfa'
         parser.add_argument('--write-env-file', action='store_true', help=env_help)
 
         refresh_help = 'Force a refresh even if the existing credentials are not yet expired'

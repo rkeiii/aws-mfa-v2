@@ -9,6 +9,11 @@ source_profile = user
 source_profile = user-mfa
 role_arn = arn:aws:iam::987654321098:role/OrganizationAccountAccessRole
 
+[profile user2]
+source_profile = default
+mfa_serial = arn:aws:iam::123456789012:mfa/user2
+yk_oath_credential = test_oath_cred
+
 [default]
 region = us-east-1
 output = json
