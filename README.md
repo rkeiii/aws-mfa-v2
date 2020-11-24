@@ -3,7 +3,7 @@ This package's purpose is life is to make it faster and easier to call [AWS STS]
 credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). It attempts to follow a 
 [batteries included philosophy](https://www.quora.com/What-does-batteries-included-philosophy-mean). The 6 digit OATH tokens required for MFA authentication can either be
  provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing 
- OATHcredentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/
+ OATH credentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/
  yubikey-manager) installed.
 
 # Installation
