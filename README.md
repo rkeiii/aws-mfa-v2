@@ -89,7 +89,7 @@ role_arn = arn:aws:iam::098765432101:role/OrganizationAccountAccessRole
 
 Once the configuration has been added you can use the role normally, ie:
 ```
-aws s3 ls --profile role
+aws sts get-caller-identity --profile role
 ```
 
 # YubiKey Support
