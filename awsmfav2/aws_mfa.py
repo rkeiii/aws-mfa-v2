@@ -217,7 +217,7 @@ class AwsMfa():
         if 'role_arn' in self.profile:
             username = getpass.getuser()
             hostname = socket.gethostname()
-            session_name = f'{username}@{hostname}|'
+            session_name = f'{username}@{hostname}'
 
             response = client.assume_role(
                 RoleArn=self.profile['role_arn'],
