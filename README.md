@@ -7,7 +7,7 @@ credentials and write them out to ~/.aws/credentials (which is typically require
 [batteries included philosophy](https://www.quora.com/What-does-batteries-included-philosophy-mean). The 6 digit OATH tokens required for MFA authentication can either be
  provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing 
  OATH credentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/
- yubikey-manager) installed.
+yubikey-manager) installed.
 
 # Installation
 Requires Python 3.6 or later and requirements from requirements.txt
