@@ -1,7 +1,7 @@
-from setuptools import setup
-
 from codecs import open
 from os import path
+
+from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
@@ -33,6 +33,6 @@ setup(
         'Environment :: Console',
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Operating System :: OS Independent',
+        'Operating System :: POSIX',
     ],
 )

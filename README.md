@@ -1,5 +1,5 @@
 # Overview 
-This package's purpose is life is to make it faster and easier to call AWS STS to obtain temporary AWS credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). The 6 digit OATH tokens can either be provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing OATH credentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/yubikey-manager) installed.
+This package's purpose is life is to make it faster and easier to call [AWS STS](https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html) to obtain temporary AWS credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). The 6 digit OATH tokens can either be provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing OATH credentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/yubikey-manager) installed.
 
 This script is intended to be installed in a user's bin directory (~/bin).
 
@@ -47,6 +47,10 @@ AWS_MFA_WRITE_ENV_FILE - See --write-env-file
 # Basic example
 Steps to run
 1. Install the latest version of the aws-mfa-v2 package from pypi
+```
+pip install aws-mfa-v2
+pip install aws-mfa-v2[yubikey] # If you want YubiKey support
+```
 2. Call aws-mfa providing it the name of an existing AWS profile and a valid MFA token code
 ```
 aws-mfa --mfa-profile existing-profile-name --token 123456 
@@ -86,5 +90,5 @@ A list of valid values can be found by running `ykman oath list`.
 
 Example command to load an MFA token directly from a YubiKey:
 ```
-aws-mfa bks-rone --yk-oath-credential "Amazon Web Services:rone-cli@bookshare"
+aws-mfa --mfa-profile bks-rone --yk-oath-credential "Amazon Web Services:rone-cli@bookshare"
 ```

@@ -14,11 +14,10 @@ import boto3
 from dateutil import parser
 
 
-class AwsMfa():
-
+class CLI():
     def __init__(self):
         '''
-        Prepare class instance for use but don't do anything yet
+        Prepares CLI instance for use
         '''
         self.aws_creds_path = f"{os.environ['HOME']}/.aws/credentials"
         self.aws_config_path = f"{os.environ['HOME']}/.aws/config"
@@ -43,26 +42,9 @@ class AwsMfa():
         # load AWS creds file
         self.creds = self._load_config(self.aws_creds_path)
 
-    @staticmethod
-    def recursive_get_config_param(config, profile_name, param_name):
-        '''
-        Get the specified profile parameter in recursive fashion
-        '''
-        profile = config[profile_name]
-
-        if param_name in profile:
-            return profile[param_name]
-        elif param_name not in profile and 'source_profile' in profile:
-            if profile['source_profile'] != 'default':
-                return AwsMfa.recursive_get_config_param(config, f"profile {profile['source_profile']}", param_name)
-            else:
-                return AwsMfa.recursive_get_config_param(config, profile['source_profile'], param_name)
-        else:
-            return None
-
     def main(self):
         '''
-        Obtain temporary AWS credentials
+        Run CLI with provided arguments and options
         '''
         creds_updated, new_creds = self._get_mfa_creds()
         
@@ -76,6 +58,23 @@ class AwsMfa():
         # write out our STS temp creds to environment file if requested
         if self.args.write_env_file:
             self._write_env_file()
+
+    @staticmethod
+    def recursive_get_config_param(config, profile_name, param_name):
+        '''
+        Get the specified profile parameter in recursive fashion
+        '''
+        profile = config[profile_name]
+
+        if param_name in profile:
+            return profile[param_name]
+        elif param_name not in profile and 'source_profile' in profile:
+            if profile['source_profile'] != 'default':
+                return CLI.recursive_get_config_param(config, f"profile {profile['source_profile']}", param_name)
+            else:
+                return CLI.recursive_get_config_param(config, profile['source_profile'], param_name)
+        else:
+            return None
 
     def _write_env_file(self):
         '''
@@ -112,6 +111,10 @@ class AwsMfa():
         return False
 
     def _get_argument(self, arg_name, required=False):
+        '''
+        Lookup the specified argument in CLI args, environment and configuration and raise
+        error if the same argument is provided by more than one source.
+        '''
         env_var_name = 'AWS_MFA_' + arg_name.upper()
         args_as_dict = vars(self.args)
         avail_sources = 0
@@ -127,9 +130,9 @@ class AwsMfa():
             arg = os.environ[env_var_name]
             avail_sources += 1
         
-        if AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name) is not None:
+        if CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name) is not None:
             # load arg from config profile
-            arg = AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name)
+            arg = CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, arg_name)
             if arg is not None:
                 avail_sources += 1
         
@@ -142,12 +145,15 @@ class AwsMfa():
         return arg
 
     def _get_ykey_token(self, yk_oath_credential):
+        '''
+        Obtains a 6 digit OATH token from a YubiKey using the ykman utility
+        '''
         result = run(['ykman', 'oath', 'code', '--single', yk_oath_credential], stdout=PIPE, check=True)
         return result.stdout.decode('utf-8').rstrip()
 
     def _get_token(self):
         '''
-        Get token from CLI or YubiKey
+        Obtains a 6 digit OATH token from either the CLI args or a YubiKey using the ykman utility
         '''
         if self.args.token is None and self._ykey_is_present():
             yk_oath_credential = self._get_argument('yk_oath_credential')
@@ -223,12 +229,12 @@ class AwsMfa():
                 RoleArn=self.profile['role_arn'],
                 RoleSessionName=session_name,
                 DurationSeconds=duration,
-                SerialNumber=AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
+                SerialNumber=CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
                 TokenCode=self._get_token()
             )
         else:
             response = client.get_session_token(
-                SerialNumber=AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
+                SerialNumber=CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
                 TokenCode=self._get_token(),
                 DurationSeconds=duration
             )
@@ -244,7 +250,6 @@ class AwsMfa():
 
         return creds
 
-
     def _validate_aws_profile(self):
         '''
         Validate the AWS profile provided
@@ -254,7 +259,7 @@ class AwsMfa():
             raise ValueError(f'AWS profile {self.args.mfa_profile} not found in ~/.aws/config')
 
         # confirm the specified AWS profile contains an mfa_serial parameter
-        if AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial') is None:
+        if CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial') is None:
             raise ValueError(f"AWS profile {self.args.mfa_profile} nor it's ancestors contain an mfa_serial parameter")
 
     def _ykey_is_present(self, ykey_count=None):
@@ -276,7 +281,6 @@ class AwsMfa():
             return False
 
         return True
-
 
     def _ykman_is_installed(self):
         '''
@@ -319,8 +323,8 @@ class AwsMfa():
         return parser.parse_args()
 
 
-if __name__ == '__main__':
-    AwsMfa().main()
+def main():
+    CLI().main()
 
-def entrypoint():
-    AwsMfa().main()
+if __name__ == '__main__':
+    CLI().main()
