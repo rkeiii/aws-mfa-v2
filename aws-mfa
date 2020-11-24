@@ -1,6 +1,0 @@
-#!/usr/bin/env python
-
-from awsmfav2.aws_mfa import AwsMfa
-
-if __name__ == "__main__":
-    AwsMfa().invoke()

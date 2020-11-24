@@ -6,7 +6,6 @@ import sys
 from configparser import ConfigParser
 from unittest.mock import Mock
 
-import boto3
 import mock
 import pytest
 from moto import mock_sts

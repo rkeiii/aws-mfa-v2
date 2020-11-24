@@ -17,10 +17,9 @@ setup(
     author='Ron Ellis',
     author_email='rkeiii@protonmail.com',
     packages=['awsmfav2'],
-    scripts=['aws-mfa'],
     entry_points={
         'console_scripts': [
-            'aws-mfa=awsmfav2:invoke',
+            'aws-mfa=awsmfav2.aws_mfa:entrypoint',
         ],
     },
     url='https://github.com/rkeiii/aws-mfa-v2',
@@ -30,8 +29,10 @@ setup(
         'yubikey': ['yubikey-manager']
     },
     classifiers=[
-        "Programming Language :: Python :: 3",
+        'Development Status :: 4 - Beta',
+        'Environment :: Console',
+        'Programming Language :: Python :: 3',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        "Operating System :: OS Independent",
+        'Operating System :: OS Independent',
     ],
 )

@@ -4,7 +4,6 @@ import argparse
 import getpass
 import os
 import socket
-import sys
 from configparser import ConfigParser
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +12,7 @@ from subprocess import PIPE, run
 
 import boto3
 from dateutil import parser
+
 
 class AwsMfa():
 
@@ -60,9 +60,9 @@ class AwsMfa():
         else:
             return None
 
-    def invoke(self):
+    def main(self):
         '''
-        Do nothing if valid credentials are already present otherwise obtain new ones
+        Obtain temporary AWS credentials
         '''
         creds_updated, new_creds = self._get_mfa_creds()
         
@@ -320,4 +320,7 @@ class AwsMfa():
 
 
 if __name__ == '__main__':
-    AwsMfa().invoke()
+    AwsMfa().main()
+
+def entrypoint():
+    AwsMfa().main()
