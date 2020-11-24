@@ -24,7 +24,7 @@ setup(
     },
     url='https://github.com/rkeiii/aws-mfa-v2',
     python_requires='>=3.6',
-    install_requires=['boto3', 'configparser', 'argparse'],
+    install_requires=['boto3[sts]', 'configparser', 'argparse', 'dateutil'],
     extras_require={
         'yubikey': ['yubikey-manager']
     },
