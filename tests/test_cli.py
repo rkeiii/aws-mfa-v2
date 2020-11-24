@@ -17,10 +17,21 @@ def env_setup(monkeypatch):
     '''
     Environment setup before all tests
     '''
-    monkeypatch.delenv('AWS_DEFAULT_REGION')
-    monkeypatch.delenv('AWS_MFA_PROFILE')
-    monkeypatch.delenv('AWS_MFA_YK_OATH_CREDENTIAL')
-    monkeypatch.delenv('AWS_PROFILE')
+    if 'AWS_DEFAULT_REGION' in os.environ:
+        monkeypatch.delenv('AWS_DEFAULT_REGION')
+
+    if 'AWS_MFA_PROFILE' in os.environ:
+        monkeypatch.delenv('AWS_MFA_PROFILE')
+    
+    if 'AWS_MFA_YK_OATH_CREDENTIAL' in os.environ:
+        monkeypatch.delenv('AWS_MFA_YK_OATH_CREDENTIAL')
+    
+    if 'AWS_PROFILE' in os.environ:
+        monkeypatch.delenv('AWS_PROFILE')
+    
+    if 'TESTME' in os.environ:
+        monkeypatch.delenv('TESTME')
+
 
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user', '--duration', '666'])
 def test_get_cli_argument(monkeypatch, tmp_path):
@@ -34,6 +45,7 @@ def test_get_cli_argument(monkeypatch, tmp_path):
     duration = cli._get_argument('duration')
     assert(duration == 666)
 
+
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user2', '--duration', '666'])
 def test_get_config_argument(monkeypatch, tmp_path):
     '''
@@ -45,6 +57,7 @@ def test_get_config_argument(monkeypatch, tmp_path):
     cli = CLI()
     oath_credential = cli._get_argument('yk_oath_credential')
     assert(oath_credential == 'test_oath_cred')
+
 
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user'])
 def test_recursive_get_config_param(monkeypatch, tmp_path):
@@ -58,37 +71,39 @@ def test_recursive_get_config_param(monkeypatch, tmp_path):
     mfa_serial = CLI.recursive_get_config_param(cli.config, 'profile role', 'mfa_serial')
     assert(mfa_serial == EXPECTED_MFA_DEV_ARN)
 
+
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user'])
 @pytest.mark.skipif(shutil.which('ykman') is None, reason="ykman is not installed")
 def test_ykman_is_installed(monkeypatch, tmp_path):
+    '''
+    Test check if ykman is installed
+    '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
     from awsmfav2.cli import CLI
     cli = CLI()
     assert(cli._ykman_is_installed())
 
+
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user'])
 @pytest.mark.skipif(shutil.which('ykman') is None, reason="ykman is not installed")
 def test_ykey_is_present(monkeypatch, tmp_path):
+    '''
+    Test check if a YubiKey is current connected to the host
+    '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
     from awsmfav2.cli import CLI
     cli = CLI()
     assert(cli._ykey_is_present())
 
-@mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user'])
-@pytest.mark.skipif(shutil.which('ykman') is None, reason="ykman is not installed")
-def test_ykey_is_not_present(monkeypatch, tmp_path):
-    monkeypatch.setenv('HOME', str(tmp_path))
-    init_tmpdir(tmp_path, 'expired')
-    from awsmfav2.cli import CLI
-    cli = CLI()
-    with pytest.raises(RuntimeError):
-        assert(cli._ykey_is_present(ykey_count=0))
 
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user', '--yk-oath-credential', 'foo'])
 @pytest.mark.skipif(shutil.which('ykman') is None, reason="ykman is not installed")
-def test_ykey_is_not_present(monkeypatch, tmp_path):
+def test_ykey_is_not_present_cli_arg(monkeypatch, tmp_path):
+    '''
+    Test to try logic if a YubiKey is not connected with OATH cred passed from CLI
+    '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
     from awsmfav2.cli import CLI
@@ -99,7 +114,7 @@ def test_ykey_is_not_present(monkeypatch, tmp_path):
 
 @mock.patch.object(sys, 'argv', ['cli.py', '--mfa-profile', 'user', '--yk-oath-credential', 'foo'])
 @pytest.mark.skipif(shutil.which('ykman') is None, reason="ykman is not installed")
-def test_ykey_is_not_present(monkeypatch, tmp_path):
+def test_get_token_from_ykey(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
     from awsmfav2.cli import CLI
@@ -144,6 +159,7 @@ def test_get_mfa_creds_unexpired(monkeypatch, tmp_path):
     assert(isinstance(creds['aws_session_token'], str))
     assert(isinstance(creds['expiration'], str))
 
+
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'user', '--write-env-file'])
 @mock_sts
 def test_main_unexpired_creds(monkeypatch, tmp_path):
@@ -158,6 +174,7 @@ def test_main_unexpired_creds(monkeypatch, tmp_path):
     cli.main()
     assert(cli._get_argument('duration') == '900')
 
+
 @mock.patch.object(sys, 'argv', ['cli.py', '--token', '123456', '--mfa-profile', 'role', '--write-env-file'])
 @mock_sts
 def test_main_expired_creds(monkeypatch, tmp_path):
@@ -170,7 +187,11 @@ def test_main_expired_creds(monkeypatch, tmp_path):
     cli = CLI()
     cli.main()
 
+
 def init_tmpdir(tmp_dir, status):
+    '''
+    Copy test data into specified tmp directory
+    '''
     dirpath = os.path.dirname(__file__)
     config_filepath = os.path.join(dirpath, 'test_data/config')
     creds_filepath = os.path.join(dirpath, f'./test_data/credentials_{status}')

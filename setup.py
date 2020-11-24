@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='aws-mfa-v2',
-    version='0.2.2',
+    version='0.2.3',
     description='Manage AWS MFA Security Credentials',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -19,7 +19,7 @@ setup(
     packages=['awsmfav2'],
     entry_points={
         'console_scripts': [
-            'aws-mfa=awsmfav2.aws_mfa:entrypoint',
+            'aws-mfa=awsmfav2.cli:main',
         ],
     },
     url='https://github.com/rkeiii/aws-mfa-v2',

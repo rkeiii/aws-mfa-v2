@@ -15,6 +15,11 @@ from dateutil import parser
 
 
 class CLI():
+
+    '''
+    Command Line Interface of aws-mfa-v2
+    '''
+
     def __init__(self):
         '''
         Prepares CLI instance for use
@@ -56,7 +61,7 @@ class CLI():
             print(f'Credentials for profile {self.mfa_profile_name} are still valid until {self._utc_to_local(self._get_mfa_creds_expired())}, skipping refresh')
 
         # write out our STS temp creds to environment file if requested
-        if self.args.write_env_file:
+        if bool(self._get_argument('write_env_file')):
             self._write_env_file()
 
     @staticmethod
@@ -216,8 +221,10 @@ class CLI():
         if self._get_argument('duration') is not None:
             duration = int(self._get_argument('duration'))
         elif 'role_arn' in self.profile:
+            # defualt to 1 hour for roles
             duration = 3600
         else:
+            # default to 12 hours for users
             duration = 43200
 
         if 'role_arn' in self.profile:
@@ -314,8 +321,8 @@ class CLI():
         duration_help = 'STS token duration in seconds to request, defaults to 12 hours'
         parser.add_argument('--duration', type=int, help=duration_help)
 
-        env_help = 'Write the temp MFA credentials for hte profile specified in --mfa-profile out to ~/.aws-mfa'
-        parser.add_argument('--write-env-file', action='store_true', help=env_help)
+        env_help = 'Write the temp MFA credentials for the profile specified in --mfa-profile out to ~/.aws-mfa. If set via environment variable this should be set to true or false'
+        parser.add_argument('--write-env-file', action='store_true', default=None, help=env_help)
 
         refresh_help = 'Force a refresh even if the existing credentials are not yet expired'
         parser.add_argument('--force-refresh', action='store_true', help=refresh_help)
@@ -324,6 +331,9 @@ class CLI():
 
 
 def main():
+    '''
+    Entrypoint used by setup.py console scripts section
+    '''
     CLI().main()
 
 if __name__ == '__main__':

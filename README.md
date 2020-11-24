@@ -1,5 +1,10 @@
 # Overview 
-This package's purpose is life is to make it faster and easier to call [AWS STS](https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html) to obtain temporary AWS credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). The 6 digit OATH tokens can either be provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing OATH credentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/yubikey-manager) installed.
+This package's purpose is life is to make it faster and easier to call [AWS STS](https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html) to obtain temporary AWS 
+credentials and write them out to ~/.aws/credentials (which is typically required when using [MFA](https://aws.amazon.com/iam/features/mfa/)). It attempts to follow a 
+[batteries included philosophy](https://www.quora.com/What-does-batteries-included-philosophy-mean). The 6 digit OATH tokens required for MFA authentication can either be
+ provided directly via the --token argument or obtained automatically from a YubiKey by specifying the OATH credential in the --yk-oath-credential argument. The existing 
+ OATHcredentials stored on your YubiKey can be found using the `ykman list` command assuming that you have the [YubiKey Manager CLI](https://github.com/Yubico/
+ yubikey-manager) installed.
 
 # Installation
 Requires Python 3.6 or later and requirements from requirements.txt
@@ -34,9 +39,10 @@ optional arguments:
                         not yet expired
 ```
 
-# Environment Variables
+# Environment variable configuration
 The following environment variables can be used to provide configuration
 ```
+AWS_MFA_PROFILE - See --mfa-profile
 AWS_MFA_YK_OATH_CREDENTIAL - See --yk-oath-credential
 AWS_MFA_DURATION - See --duration
 AWS_MFA_WRITE_ENV_FILE - See --write-env-file
@@ -53,10 +59,11 @@ pip install aws-mfa-v2[yubikey] # If you want YubiKey support
 ```
 aws-mfa --mfa-profile existing-profile-name --token 123456 
 ```
-3. Examine ~/.aws/credentials and see the newly added temporary credentials. Note: The script will insert the temporary STS credentials into a new named profile based on the named profile provided as the first positional argument to this script with "-mfa" appended. 
+3. Examine ~/.aws/credentials and see the newly added temporary credentials. Note: The script will insert the temporary STS credentials into a new named profile based on the 
+named profile provided as the first positional argument to this script with "-mfa" appended. 
 4. Try calling an AWS service using the new named profile created by the script. Following the example above:
 ```
-aws s3 ls --profile existing-profile-name-mfa
+aws sts get-caller-identity --profile existing-profile-name-mfa
 ```
 
 # Configuration example to assume a role that requires MFA 
@@ -71,15 +78,15 @@ region = us-east-1
 [profile existing-profile-name-mfa]
 source_profile = existing-profile-name 
 
-# A role (in this case in a different AWS account which requires MFA
-[profile role-requiring-mfa]
+# A role (in this case in a different AWS account) which requires MFA
+[profile role]
 source_profile = existing-profile-name-mfa 
 role_arn = arn:aws:iam::098765432101:role/OrganizationAccountAccessRole
 ```
 
 Once the configuration has been added you can use the role normally, ie:
 ```
-aws s3 ls --profile role-requiring-mfa
+aws s3 ls --profile role
 ```
 
 # YubiKey Support
@@ -89,4 +96,14 @@ A list of valid values can be found by running `ykman oath list`.
 Example command to load an MFA token directly from a YubiKey:
 ```
 aws-mfa --mfa-profile bks-rone --yk-oath-credential "Amazon Web Services:rone-cli@bookshare"
+```
+
+# Exposing temporary credentials as environment variables
+You can use the `--write-env-file` option to expose the credentials associated with the profile specified in `--mfa-profile` as environment variables. This is useful for 
+compatibility with other software that may not support AWS CLI profiles properly. If you set the `--write-env-file` option credentials will be written to `~/.aws-mfa` 
+regardless of whether the credentials are refreshed in the current CLI run. An example usage follows:
+```
+aws-mfa --mfa-profile role --write-env-file
+. ~/.aws-mfa
+aws sts get-caller-identity --profile role-mfa
 ```
