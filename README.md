@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/rkeiii/aws-mfa-v2/branch/master/graph/badge.svg?token=4NwTgvppDW)](https://codecov.io/gh/rkeiii/aws-mfa-v2)
+[![PyPI version](https://badge.fury.io/py/aws-mfa-v2.svg)](https://badge.fury.io/py/aws-mfa-v2)
 
 # Overview 
 This package's purpose is life is to make it faster and easier to call [AWS STS](https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html) to obtain temporary AWS 
