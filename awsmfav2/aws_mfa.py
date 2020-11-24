@@ -1,7 +1,9 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python
 
 import argparse
+import getpass
 import os
+import socket
 import sys
 from configparser import ConfigParser
 from datetime import datetime, timezone
@@ -204,16 +206,32 @@ class AwsMfa():
         else:
             client = sts_client
         
+        # set correct duration
         if self._get_argument('duration') is not None:
             duration = int(self._get_argument('duration'))
+        elif 'role_arn' in self.profile:
+            duration = 3600
         else:
             duration = 43200
 
-        response = client.get_session_token(
-            SerialNumber=AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
-            TokenCode=self._get_token(),
-            DurationSeconds=duration
-        )
+        if 'role_arn' in self.profile:
+            username = getpass.getuser()
+            hostname = socket.gethostname()
+            session_name = f'{username}@{hostname}|'
+
+            response = client.assume_role(
+                RoleArn=self.profile['role_arn'],
+                RoleSessionName=session_name,
+                DurationSeconds=duration,
+                SerialNumber=AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
+                TokenCode=self._get_token()
+            )
+        else:
+            response = client.get_session_token(
+                SerialNumber=AwsMfa.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
+                TokenCode=self._get_token(),
+                DurationSeconds=duration
+            )
 
         local_expiration = self._utc_to_local(response['Credentials']['Expiration'])
         

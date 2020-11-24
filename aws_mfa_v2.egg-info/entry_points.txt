@@ -1,0 +1,3 @@
+[console_scripts]
+aws-mfa = awsmfav2:invoke
+
