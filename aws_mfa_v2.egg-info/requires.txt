@@ -1,6 +1,0 @@
-argparse
-boto3
-configparser
-
-[yubikey]
-yubikey-manager
