@@ -30,7 +30,7 @@ def test_get_cli_argument(monkeypatch, tmp_path):
     '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     duration = aws_mfa._get_argument('duration')
     assert(duration == 666)
@@ -42,7 +42,7 @@ def test_get_config_argument(monkeypatch, tmp_path):
     '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     oath_credential = aws_mfa._get_argument('yk_oath_credential')
     assert(oath_credential == 'test_oath_cred')
@@ -54,7 +54,7 @@ def test_recursive_get_config_param(monkeypatch, tmp_path):
     '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     mfa_serial = AwsMfa.recursive_get_config_param(aws_mfa.config, 'profile role', 'mfa_serial')
     assert(mfa_serial == EXPECTED_MFA_DEV_ARN)
@@ -64,7 +64,7 @@ def test_recursive_get_config_param(monkeypatch, tmp_path):
 def test_ykman_is_installed(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     assert(aws_mfa._ykman_is_installed())
 
@@ -73,7 +73,7 @@ def test_ykman_is_installed(monkeypatch, tmp_path):
 def test_ykey_is_present(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     assert(aws_mfa._ykey_is_present())
 
@@ -82,7 +82,7 @@ def test_ykey_is_present(monkeypatch, tmp_path):
 def test_ykey_is_not_present(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     with pytest.raises(RuntimeError):
         assert(aws_mfa._ykey_is_present(ykey_count=0))
@@ -92,7 +92,7 @@ def test_ykey_is_not_present(monkeypatch, tmp_path):
 def test_ykey_is_not_present(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     with mock.patch.object(AwsMfa, '_ykman_is_installed', return_value=False):
         aws_mfa = AwsMfa()
         with pytest.raises(RuntimeError):
@@ -103,7 +103,7 @@ def test_ykey_is_not_present(monkeypatch, tmp_path):
 def test_ykey_is_not_present(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     with mock.patch.object(AwsMfa, '_get_ykey_token', return_value=123456):
         with mock.patch.object(AwsMfa, '_ykey_is_present', return_value=True):
             aws_mfa = AwsMfa()
@@ -117,7 +117,7 @@ def test_get_mfa_creds_expired(monkeypatch, tmp_path):
     '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     updated, creds = aws_mfa._get_mfa_creds()
     print(creds['expiration'])
@@ -136,7 +136,7 @@ def test_get_mfa_creds_unexpired(monkeypatch, tmp_path):
     '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'unexpired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     updated, creds = aws_mfa._get_mfa_creds()
     assert(updated == False)
@@ -154,7 +154,7 @@ def test_invoke_unexpired_creds(monkeypatch, tmp_path):
     monkeypatch.setenv('HOME', str(tmp_path))
     monkeypatch.setenv('AWS_MFA_DURATION', '900')
     init_tmpdir(tmp_path, 'unexpired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     aws_mfa.invoke()
     assert(aws_mfa._get_argument('duration') == '900')
@@ -167,7 +167,7 @@ def test_invoke_expired_creds(monkeypatch, tmp_path):
     '''
     monkeypatch.setenv('HOME', str(tmp_path))
     init_tmpdir(tmp_path, 'expired')
-    from .aws_mfa import AwsMfa
+    from awsmfav2.aws_mfa import AwsMfa
     aws_mfa = AwsMfa()
     aws_mfa.invoke()
 
