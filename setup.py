@@ -13,7 +13,7 @@ setup(
     description='Manage AWS MFA Security Credentials',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    license='MIT',
+    license='GPLv3+',
     author='Ron Ellis',
     author_email='rkeiii@protonmail.com',
     packages=['awsmfav2'],
@@ -24,8 +24,14 @@ setup(
         ],
     },
     url='https://github.com/rkeiii/aws-mfa-v2',
+    python_requires='>=3.6',
     install_requires=['boto3', 'configparser', 'argparse'],
     extras_require={
         'yubikey': ['yubikey-manager']
-    }
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        "Operating System :: OS Independent",
+    ],
 )
