@@ -33,7 +33,9 @@ class CLI():
         
         # set required instance variables
         self.profile_name = self.args.mfa_profile
-        self.mfa_profile_name = f'{self.profile_name}-mfa'
+        self.mfa_profile_name = self.args.mfa_profile_gen
+        if self.mfa_profile_name is None:
+            self.mfa_profile_name = f'{self.profile_name}-mfa'
         self.prefixd_profile_name = f'profile {self.profile_name}'
         self.prefixd_mfa_profile_name = f'profile {self.mfa_profile_name}'
         self.config = self._load_config(self.aws_config_path)
@@ -310,6 +312,17 @@ class CLI():
             type=str,
             default=mfa_profile_arg,
             help='Named AWS profile containg the mfa_serial for use in obtaining temporary credentials.'
+        )
+
+        try:
+            mfa_profile_gen_arg = os.environ['AWS_MFA_PROFILE_GEN']
+        except KeyError:
+            mfa_profile_gen_arg = None
+        parser.add_argument(
+            '--mfa-profile-gen',
+            type=str,
+            default=mfa_profile_gen_arg,
+            help='Named AWS profile added to aws credentials.'
         )
 
         token_help = 'Six digit token code from your MFA device'
