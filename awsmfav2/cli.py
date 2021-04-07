@@ -33,7 +33,7 @@ class CLI():
         
         # set required instance variables
         self.profile_name = self.args.mfa_profile
-        self.mfa_profile_name = self.args.mfa_profile_gen
+        self.mfa_profile_name = self.args.sts_creds_profile
         if self.mfa_profile_name is None:
             self.mfa_profile_name = f'{self.profile_name}-mfa'
         self.prefixd_profile_name = f'profile {self.profile_name}'
@@ -315,14 +315,14 @@ class CLI():
         )
 
         try:
-            mfa_profile_gen_arg = os.environ['AWS_MFA_PROFILE_GEN']
+            sts_creds_profile_arg = os.environ['AWS_STS_CREDS_PROFILE']
         except KeyError:
-            mfa_profile_gen_arg = None
+            sts_creds_profile_arg = None
         parser.add_argument(
-            '--mfa-profile-gen',
+            '--sts-creds-profile',
             type=str,
-            default=mfa_profile_gen_arg,
-            help='Named AWS profile added to aws credentials.'
+            default=sts_creds_profile_arg,
+            help='Optional, the named AWS profile where the AWS STS credentials will be stored.'
         )
 
         token_help = 'Six digit token code from your MFA device'
