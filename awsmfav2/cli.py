@@ -33,7 +33,9 @@ class CLI():
         
         # set required instance variables
         self.profile_name = self.args.mfa_profile
-        self.mfa_profile_name = f'{self.profile_name}-mfa'
+        self.mfa_profile_name = self.args.sts_creds_profile
+        if self.mfa_profile_name is None:
+            self.mfa_profile_name = f'{self.profile_name}-mfa'
         self.prefixd_profile_name = f'profile {self.profile_name}'
         self.prefixd_mfa_profile_name = f'profile {self.mfa_profile_name}'
         self.config = self._load_config(self.aws_config_path)
@@ -310,6 +312,17 @@ class CLI():
             type=str,
             default=mfa_profile_arg,
             help='Named AWS profile containg the mfa_serial for use in obtaining temporary credentials.'
+        )
+
+        try:
+            sts_creds_profile_arg = os.environ['AWS_STS_CREDS_PROFILE']
+        except KeyError:
+            sts_creds_profile_arg = None
+        parser.add_argument(
+            '--sts-creds-profile',
+            type=str,
+            default=sts_creds_profile_arg,
+            help='Optional, the named AWS profile where the AWS STS credentials will be stored.'
         )
 
         token_help = 'Six digit token code from your MFA device'
