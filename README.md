@@ -109,3 +109,8 @@ aws-mfa --mfa-profile role --write-env-file
 . ~/.aws-mfa
 aws sts get-caller-identity --profile role-mfa
 ```
+
+# Contribution Guidelines
+I look forward to accepting more contributions on this project. The requirements are very simple right now:
+* Format the code with Black
+* Submit a PR
