@@ -5,6 +5,7 @@ import shutil
 import sys
 from configparser import ConfigParser
 from unittest.mock import Mock
+from awsmfav2.cli import _get_session_name
 
 import mock
 import pytest
@@ -198,3 +199,11 @@ def init_tmpdir(tmp_dir, status):
     os.mkdir(f'{tmp_dir}/.aws')
     shutil.copyfile(config_filepath, f'{tmp_dir}/.aws/config')
     shutil.copyfile(creds_filepath, f'{tmp_dir}/.aws/credentials')
+
+
+@pytest.mark.parametrize("mfa_serial, expected", [
+    ('arn:aws:iam::1234567890:mfa/jonathan.roberts', "jonathan.roberts"),
+])
+def test_get_session_name(mfa_serial, expected):
+    output = _get_session_name(mfa_serial)
+    assert output == expected

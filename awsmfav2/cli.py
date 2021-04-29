@@ -230,15 +230,14 @@ class CLI():
             duration = 43200
 
         if 'role_arn' in self.profile:
-            username = getpass.getuser()
-            hostname = socket.gethostname()
-            session_name = f'{username}@{hostname}'
+            mfa_serial = CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial')
+            session_name = _get_session_name(mfa_serial)
 
             response = client.assume_role(
                 RoleArn=self.profile['role_arn'],
                 RoleSessionName=session_name,
                 DurationSeconds=duration,
-                SerialNumber=CLI.recursive_get_config_param(self.config, self.prefixd_profile_name, 'mfa_serial'),
+                SerialNumber=mfa_serial,
                 TokenCode=self._get_token()
             )
         else:
@@ -341,6 +340,10 @@ class CLI():
         parser.add_argument('--force-refresh', action='store_true', help=refresh_help)
 
         return parser.parse_args()
+
+
+def _get_session_name(mfa_serial: str) -> str:
+    return mfa_serial.split("/")[-1].strip().replace(" ", "")
 
 
 def main():
