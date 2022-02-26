@@ -114,3 +114,10 @@ aws sts get-caller-identity --profile role-mfa
 I look forward to accepting more contributions on this project. The requirements are very simple right now:
 * Format the code with Black
 * Submit a PR
+
+# Release Proccess
+The current release process is:
+* python setup.py clean
+* python3 setup.py sdist bdist_wheel
+* twine upload -r pypi aws_mfa_v2-*-py2.py3-none-any.whl
+* pip install --upgrade aws-mfa-v2

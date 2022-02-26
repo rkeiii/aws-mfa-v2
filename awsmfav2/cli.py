@@ -181,7 +181,7 @@ class CLI:
         Obtains a 6 digit OATH token from a YubiKey using the ykman utility
         """
         result = run(
-            ["ykman", "oath", "code", "--single", yk_oath_credential],
+            ["ykman", "oath", "accounts", "code", "--single", yk_oath_credential],
             stdout=PIPE,
             check=True,
         )
