@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws-mfa-v2"
-version = "0.3.1"
+version = "0.3.2"
 description = "Manage AWS MFA Security Credentials"
 authors = ["Ron Ellis <rkeiii@protonmail.com>"]
 license = "GPL-3.0-or-later"
