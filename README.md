@@ -21,28 +21,27 @@ pip install aws-mfa-v2[yubikey] # YubiKey support
 # Usage
 
 ```
-usage: aws-mfa [-h] [--mfa-profile MFA_PROFILE] [--token TOKEN]
-               [--yk-oath-credential YK_OATH_CREDENTIAL] [--duration DURATION]
-               [--write-env-file] [--force-refresh]
+usage: aws-mfa [-h] [--mfa-profile MFA_PROFILE] [--sts-creds-profile STS_CREDS_PROFILE] [--token TOKEN]
+               [--yk-oath-credential YK_OATH_CREDENTIAL] [--duration DURATION] [--write-env-file] [--force-refresh]
+               [--min-remaining MIN_REMAINING]
 
 Obtain and make available temporary AWS credentials
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --mfa-profile MFA_PROFILE
-                        Named AWS profile containg the mfa_serial for use in
-                        obtaining temporary credentials.
+                        Named AWS profile containg the mfa_serial for use in obtaining temporary credentials.
+  --sts-creds-profile STS_CREDS_PROFILE
+                        Optional, the named AWS profile where the AWS STS credentials will be stored.
   --token TOKEN         Six digit token code from your MFA device
   --yk-oath-credential YK_OATH_CREDENTIAL
-                        YubiKey Manager OATH credential to use. For use with a
-                        YubiKey. See 'ykman oath list' output for possible
-                        values.
-  --duration DURATION   STS token duration in seconds to request, defaults to
-                        12 hours
-  --write-env-file      Write the temp MFA credentials for hte profile
-                        specified in --mfa-profile out to ~/.aws-mfa
-  --force-refresh       Force a refresh even if the existing credentials are
-                        not yet expired
+                        YubiKey Manager OATH credential to use. For use with a YubiKey. See 'ykman oath list' output for possible values.
+  --duration DURATION   STS token duration in seconds to request, defaults to 12 hours
+  --write-env-file      Write the temp MFA credentials for the profile specified in --mfa-profile out to ~/.aws-mfa. If set via environment
+                        variable this should be set to true or false
+  --force-refresh       Force a refresh even if the existing credentials are not yet expired
+  --min-remaining MIN_REMAINING
+                        Set a minimum number of seconds existing credentials must be valid for before a refresh is performed
 ```
 
 # Environment variable configuration
