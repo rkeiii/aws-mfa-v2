@@ -15,7 +15,6 @@ from dateutil import parser
 
 
 class CLI:
-
     """
     Command Line Interface of aws-mfa-v2
     """
@@ -58,12 +57,14 @@ class CLI:
         if creds_updated:
             self.creds[self.mfa_profile_name] = new_creds
             self._write_creds()
+            remaining = self._get_remaining_minutes(self._get_mfa_creds_expired())
             print(
-                f"Refreshed credentials for profile {self.mfa_profile_name}, they will expire at {self._utc_to_local(self._get_mfa_creds_expired())}"
+                f"Refreshed credentials for profile {self.mfa_profile_name}, they will expire in about {remaining:0.0f} minutes"
             )
         else:
+            remaining = self._get_remaining_minutes(self._get_mfa_creds_expired())
             print(
-                f"Credentials for profile {self.mfa_profile_name} are still valid until {self._utc_to_local(self._get_mfa_creds_expired())}, skipping refresh"
+                f"Credentials for profile {self.mfa_profile_name} are still valid for about {remaining:0.0f} minutes, skipping refresh"
             )
 
         # write out our STS temp creds to environment file if requested
@@ -125,6 +126,7 @@ class CLI:
                 expiration = parser.isoparse(
                     self.creds[self.mfa_profile_name]["expiration"]
                 )
+                expiration = expiration.replace(tzinfo=timezone.utc)
                 now = datetime.utcnow()
                 now = now.replace(tzinfo=timezone.utc)
                 if expiration < now:
@@ -225,7 +227,14 @@ class CLI:
         if self.args.force_refresh:
             return True, self._call_sts()
         elif isinstance(expiration, datetime):
-            local_expiration = str(self._utc_to_local(expiration))
+            if self.args.min_remaining:
+                now = datetime.utcnow()
+                now = now.replace(tzinfo=timezone.utc)
+                remaining = expiration - now
+                if remaining.total_seconds() < self.args.min_remaining:
+                    return True, self._call_sts(sts_client=sts_client)
+                else:
+                    return False, self.creds[self.mfa_profile_name]
             return False, self.creds[self.mfa_profile_name]
         else:
             return True, self._call_sts(sts_client=sts_client)
@@ -393,7 +402,23 @@ class CLI:
         )
         parser.add_argument("--force-refresh", action="store_true", help=refresh_help)
 
+        min_remaining_help = "Set a minimum number of seconds existing credentials must be valid for before a refresh is performed"
+        parser.add_argument(
+            "--min-remaining",
+            type=int,
+            default=None,
+            help=min_remaining_help,
+        )
+
         return parser.parse_args()
+
+    def _get_remaining_minutes(self, expiration):
+        """
+        Get the number of minutes remaining before the specified expiration
+        """
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        remaining = expiration - now
+        return remaining.seconds / 60
 
 
 def main():

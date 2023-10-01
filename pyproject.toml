@@ -21,8 +21,16 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 boto3 = "^1.28.57"
-configparser = "^6.0.0"
 python-dateutil = "^2.8.2"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^6.0.0"
+pytest-mock = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^6.0.0"
+pytest-mock = "*"
+black = "^23.9.1"
 
 [tool.poetry.scripts]
 aws-mfa = 'awsmfav2.cli:main'
