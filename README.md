@@ -140,4 +140,5 @@ I look forward to accepting more contributions on this project. The requirements
 
 The current release process is:
 
+- poetry build
 - poetry publish
