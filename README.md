@@ -140,6 +140,4 @@ I look forward to accepting more contributions on this project. The requirements
 
 The current release process is:
 
-- python setup.py clean
-- python3 setup.py sdist bdist_wheel
-- twine upload -r pypi aws_mfa_v2-$VERSION-py2.py3-none-any.whl
+- poetry publish
