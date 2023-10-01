@@ -3,11 +3,12 @@
 import os
 import shutil
 import sys
+import unittest.mock as mock
 from configparser import ConfigParser
-from unittest.mock import Mock
+from datetime import datetime, timedelta, timezone
 
-import mock
 import pytest
+from dateutil import parser
 from moto import mock_sts
 
 EXPECTED_MFA_DEV_ARN = "arn:aws:iam::123456789012:mfa/user"
@@ -32,6 +33,81 @@ def env_setup(monkeypatch):
 
     if "TESTME" in os.environ:
         monkeypatch.delenv("TESTME")
+
+
+@mock.patch.object(
+    sys,
+    "argv",
+    ["cli.py", "--token", "123456", "--mfa-profile", "user", "--min-remaining", "300"],
+)
+@mock_sts
+def test_min_remaining_unexpired(monkeypatch, tmp_path):
+    """
+    Test that we can actually call mock STS and get back creds
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    init_tmpdir(tmp_path, "unexpired")
+    config = ConfigParser()
+    creds_path = f"{tmp_path}/.aws/credentials"
+    config.read(creds_path)
+    new_expiration = datetime.utcnow() + timedelta(minutes=6)
+    new_expiration = new_expiration.replace(tzinfo=timezone.utc)
+    config.set("user-mfa", "expiration", new_expiration.isoformat())
+    config.write(open(creds_path, "w"))
+
+    from awsmfav2.cli import CLI
+
+    cli = CLI()
+    updated, creds = cli._get_mfa_creds()
+    assert updated == False
+
+
+@mock.patch.object(
+    sys,
+    "argv",
+    ["cli.py", "--token", "123456", "--mfa-profile", "user", "--min-remaining", "300"],
+)
+@mock_sts
+def test_min_remaining_expired(monkeypatch, tmp_path):
+    """
+    Test that we can actually call mock STS and get back creds
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    init_tmpdir(tmp_path, "expired")
+    config = ConfigParser()
+    creds_path = f"{tmp_path}/.aws/credentials"
+    config.read(creds_path)
+    new_expiration = datetime.utcnow() + timedelta(minutes=2)
+    new_expiration = new_expiration.replace(tzinfo=timezone.utc)
+    config.set("user-mfa", "expiration", new_expiration.isoformat())
+    config.write(open(creds_path, "w"))
+
+    from awsmfav2.cli import CLI
+
+    cli = CLI()
+    updated, creds = cli._get_mfa_creds()
+    assert updated == True
+
+
+@mock.patch.object(
+    sys,
+    "argv",
+    ["cli.py", "--token", "123456", "--mfa-profile", "user", "--duration", "666"],
+)
+def test_get_remaining_minutes(monkeypatch, tmp_path):
+    """
+    Test obtaining remaining minutes from an expiration datetime
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    init_tmpdir(tmp_path, "expired")
+    from awsmfav2.cli import CLI
+
+    cli = CLI()
+
+    expiration = datetime.utcnow() + timedelta(minutes=5)
+    expiration = expiration.replace(tzinfo=timezone.utc)
+    remaining_minutes = cli._get_remaining_minutes(expiration)
+    assert remaining_minutes > 4.9 and remaining_minutes < 5.1
 
 
 @mock.patch.object(

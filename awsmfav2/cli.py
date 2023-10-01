@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, run
+from typing import Union
 
 import boto3
 from dateutil import parser
@@ -72,7 +73,9 @@ class CLI:
             self._write_env_file()
 
     @staticmethod
-    def recursive_get_config_param(config, profile_name, param_name):
+    def recursive_get_config_param(
+        config: ConfigParser, profile_name: str, param_name: str
+    ):
         """
         Get the specified profile parameter in recursive fashion
         """
@@ -135,7 +138,7 @@ class CLI:
                     return expiration
         return False
 
-    def _get_argument(self, arg_name, required=False):
+    def _get_argument(self, arg_name: str, required=False) -> Union[str, None]:
         """
         Lookup the specified argument in CLI args, environment and configuration and raise
         error if the same argument is provided by more than one source.
@@ -178,7 +181,7 @@ class CLI:
 
         return arg
 
-    def _get_ykey_token(self, yk_oath_credential):
+    def _get_ykey_token(self, yk_oath_credential: str) -> str:
         """
         Obtains a 6 digit OATH token from a YubiKey using the ykman utility
         """
@@ -209,7 +212,7 @@ class CLI:
         with open(self.aws_creds_path, "w") as credsfile:
             self.creds.write(credsfile)
 
-    def _load_config(self, config_path):
+    def _load_config(self, config_path: str) -> ConfigParser:
         """
         Loads the configuration from specified path
         """
@@ -239,7 +242,7 @@ class CLI:
         else:
             return True, self._call_sts(sts_client=sts_client)
 
-    def _call_sts(self, sts_client=None):
+    def _call_sts(self, sts_client: boto3.client):
         """
         Call AWS STS to obtain temporary MFA credentials
         """
@@ -412,7 +415,7 @@ class CLI:
 
         return parser.parse_args()
 
-    def _get_remaining_minutes(self, expiration):
+    def _get_remaining_minutes(self, expiration: datetime) -> float:
         """
         Get the number of minutes remaining before the specified expiration
         """
