@@ -5,7 +5,7 @@ import getpass
 import os
 import socket
 from configparser import ConfigParser
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, run
@@ -58,14 +58,18 @@ class CLI:
         if creds_updated:
             self.creds[self.mfa_profile_name] = new_creds
             self._write_creds()
-            remaining = self._get_remaining_minutes(self._get_mfa_creds_expired())
+            formatted_expiration = self._format_expiration(
+                self._get_mfa_creds_expired()
+            )
             print(
-                f"Refreshed credentials for profile {self.mfa_profile_name}, they will expire in about {remaining:0.0f} minutes"
+                f"Refreshed credentials for profile {self.mfa_profile_name}, they will expire in about {formatted_expiration}"
             )
         else:
-            remaining = self._get_remaining_minutes(self._get_mfa_creds_expired())
+            formatted_expiration = self._format_expiration(
+                self._get_mfa_creds_expired()
+            )
             print(
-                f"Credentials for profile {self.mfa_profile_name} are still valid for about {remaining:0.0f} minutes, skipping refresh"
+                f"Credentials for profile {self.mfa_profile_name} are still valid for about {formatted_expiration}, skipping refresh"
             )
 
         # write out our STS temp creds to environment file if requested
@@ -415,13 +419,20 @@ class CLI:
 
         return parser.parse_args()
 
-    def _get_remaining_minutes(self, expiration: datetime) -> float:
+    def _format_expiration(self, expiration: datetime) -> str:
         """
-        Get the number of minutes remaining before the specified expiration
+        Format expiration datetime as time remaining until expiration
         """
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        remaining = expiration - now
-        return remaining.seconds / 60
+        td = expiration - datetime.utcnow().replace(tzinfo=timezone.utc)
+        minutes, seconds = divmod(td.seconds + td.days * 86400, 60)
+        hours, minutes = divmod(minutes, 60)
+
+        if hours > 0:
+            formatted_expiration = f"{hours:02} hours {minutes:02} minutes"
+        else:
+            formatted_expiration = f"{minutes:02} minutes"
+
+        return formatted_expiration
 
 
 def main():
