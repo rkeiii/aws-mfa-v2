@@ -5,7 +5,7 @@ import getpass
 import os
 import socket
 from configparser import ConfigParser
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, run
