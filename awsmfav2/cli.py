@@ -396,7 +396,7 @@ class CLI:
             "--yk-oath-credential", type=str, default=None, help=oath_help
         )
 
-        duration_help = "STS token duration in seconds to request, defaults to 12 hours"
+        duration_help = "STS token duration in seconds to request, defaults to 12 hours for users and 1 hour for roles"
         parser.add_argument("--duration", type=int, help=duration_help)
 
         env_help = "Write the temp MFA credentials for the profile specified in --mfa-profile out to ~/.aws-mfa. If set via environment variable this should be set to true or false"
