@@ -94,9 +94,9 @@ def test_min_remaining_expired(monkeypatch, tmp_path):
     "argv",
     ["cli.py", "--token", "123456", "--mfa-profile", "user", "--duration", "666"],
 )
-def test_get_remaining_minutes(monkeypatch, tmp_path):
+def test_format_expiration(monkeypatch, tmp_path):
     """
-    Test obtaining remaining minutes from an expiration datetime
+    Test obtaining formatted time remaining from expiration
     """
     monkeypatch.setenv("HOME", str(tmp_path))
     init_tmpdir(tmp_path, "expired")
@@ -106,8 +106,12 @@ def test_get_remaining_minutes(monkeypatch, tmp_path):
 
     expiration = datetime.utcnow() + timedelta(minutes=5)
     expiration = expiration.replace(tzinfo=timezone.utc)
-    remaining_minutes = cli._get_remaining_minutes(expiration)
-    assert remaining_minutes > 4.9 and remaining_minutes < 5.1
+    remaining = cli._format_expiration(expiration)
+    assert remaining == "04 minutes"
+    expiration = datetime.utcnow() + timedelta(minutes=800)
+    expiration = expiration.replace(tzinfo=timezone.utc)
+    remaining = cli._format_expiration(expiration)
+    assert remaining == "13 hours 19 minutes"
 
 
 @mock.patch.object(
