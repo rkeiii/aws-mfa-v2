@@ -232,7 +232,7 @@ class CLI:
         expiration = self._get_mfa_creds_expired()
 
         if self.args.force_refresh:
-            return True, self._call_sts()
+            return True, self._call_sts(sts_client=sts_client)
         elif isinstance(expiration, datetime):
             if self.args.min_remaining:
                 now = datetime.utcnow()
