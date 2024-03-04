@@ -258,9 +258,11 @@ class CLI:
             session_profile_name = self.profile_name
 
         # getting the region from the session profile if available
-        region = self.config[f"profile {session_profile_name}"]["region"] \
-            if "region" in self.config[f"profile {session_profile_name}"] \
-            else None
+        region = CLI.recursive_get_config_param(
+            config=self.config,
+            profile_name=self.prefixed_profile_name,
+            param_name="region",
+        )
 
         # use STS to obtain temp creds
         if sts_client is None:
