@@ -11,7 +11,7 @@ OATH credentials stored on your YubiKey can be found using the `ykman list` comm
 
 # Installation
 
-Requires Python 3.8 or later and uses Poetry for dependancy management
+Requires Python 3.8 or later and uses Poetry for dependency management
 
 ```
 pip install aws-mfa-v2
@@ -131,12 +131,12 @@ aws sts get-caller-identity --profile role-mfa
 
 # Contribution Guidelines
 
-I look forward to accepting more contributions on this project. The requirements are very simple right now:
+I look forward to accepting more contributions to this project. The requirements are very simple right now:
 
 - Format the code with Black
 - Submit a PR
 
-# Release Proccess
+# Release Process
 
 The current release process is:
 

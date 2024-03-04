@@ -36,11 +36,11 @@ class CLI:
         self.mfa_profile_name = self.args.sts_creds_profile
         if self.mfa_profile_name is None:
             self.mfa_profile_name = f"{self.profile_name}-mfa"
-        self.prefixd_profile_name = f"profile {self.profile_name}"
-        self.prefixd_mfa_profile_name = f"profile {self.mfa_profile_name}"
+        self.prefixed_profile_name = f"profile {self.profile_name}"
+        self.prefixed_mfa_profile_name = f"profile {self.mfa_profile_name}"
         self.config = self._load_config(self.aws_config_path)
 
-        self.profile = self.config[self.prefixd_profile_name]
+        self.profile = self.config[self.prefixed_profile_name]
 
         # validate the aws profile that was specified
         self._validate_aws_profile()
@@ -164,20 +164,20 @@ class CLI:
 
         if (
             CLI.recursive_get_config_param(
-                self.config, self.prefixd_profile_name, arg_name
+                self.config, self.prefixed_profile_name, arg_name
             )
             is not None
         ):
             # load arg from config profile
             arg = CLI.recursive_get_config_param(
-                self.config, self.prefixd_profile_name, arg_name
+                self.config, self.prefixed_profile_name, arg_name
             )
             if arg is not None:
                 avail_sources += 1
 
         if required and avail_sources == 0:
             raise ValueError(
-                f"Required argument {arg_name} not found on CLI, in environmenbt or in configured profile"
+                f"Required argument {arg_name} not found on CLI, in environment or in configured profile"
             )
 
         if avail_sources > 1:
@@ -250,16 +250,23 @@ class CLI:
         """
         Call AWS STS to obtain temporary MFA credentials
         """
-        # assume if we were passed a role that our parent profile should be used to intiate the session
+        # assume if we were passed a role that our parent profile should be used to initiate the session
         if "role_arn" in self.profile and "source_profile" in self.profile:
             parent_profile = self.config[f"profile {self.profile['source_profile']}"]
             session_profile_name = parent_profile["source_profile"]
         else:
             session_profile_name = self.profile_name
 
+        # getting the region from the session profile if available
+        region = CLI.recursive_get_config_param(
+            config=self.config,
+            profile_name=self.prefixed_profile_name,
+            param_name="region",
+        )
+
         # use STS to obtain temp creds
         if sts_client is None:
-            session = boto3.Session(profile_name=session_profile_name)
+            session = boto3.Session(profile_name=session_profile_name, region_name=region)
             client = session.client("sts")
         else:
             client = sts_client
@@ -268,7 +275,7 @@ class CLI:
         if self._get_argument("duration") is not None:
             duration = int(self._get_argument("duration"))
         elif "role_arn" in self.profile:
-            # defualt to 1 hour for roles
+            # default to 1 hour for roles
             duration = 3600
         else:
             # default to 12 hours for users
@@ -284,29 +291,24 @@ class CLI:
                 RoleSessionName=session_name,
                 DurationSeconds=duration,
                 SerialNumber=CLI.recursive_get_config_param(
-                    self.config, self.prefixd_profile_name, "mfa_serial"
+                    self.config, self.prefixed_profile_name, "mfa_serial"
                 ),
                 TokenCode=self._get_token(),
             )
         else:
             response = client.get_session_token(
                 SerialNumber=CLI.recursive_get_config_param(
-                    self.config, self.prefixd_profile_name, "mfa_serial"
+                    self.config, self.prefixed_profile_name, "mfa_serial"
                 ),
                 TokenCode=self._get_token(),
                 DurationSeconds=duration,
             )
 
-        local_expiration = self._utc_to_local(response["Credentials"]["Expiration"])
-
-        # store credentials in ~/.aws/credentials format
-        creds = {}
-        creds["aws_access_key_id"] = response["Credentials"]["AccessKeyId"]
-        creds["aws_secret_access_key"] = response["Credentials"]["SecretAccessKey"]
-        creds["aws_session_token"] = response["Credentials"]["SessionToken"]
-        creds["expiration"] = response["Credentials"]["Expiration"].isoformat()
-
-        return creds
+        # return credentials in ~/.aws/credentials format
+        return {"aws_access_key_id": response["Credentials"]["AccessKeyId"],
+                "aws_secret_access_key": response["Credentials"]["SecretAccessKey"],
+                "aws_session_token": response["Credentials"]["SessionToken"],
+                "expiration": response["Credentials"]["Expiration"].isoformat()}
 
     def _validate_aws_profile(self):
         """
@@ -318,10 +320,10 @@ class CLI:
                 f"AWS profile {self.args.mfa_profile} not found in ~/.aws/config"
             )
 
-        # confirm the specified AWS profile contains an mfa_serial parameter
+        # confirm the specified AWS profile contains a mfa_serial parameter
         if (
             CLI.recursive_get_config_param(
-                self.config, self.prefixd_profile_name, "mfa_serial"
+                self.config, self.prefixed_profile_name, "mfa_serial"
             )
             is None
         ):
@@ -342,7 +344,7 @@ class CLI:
 
             if ykey_count > 1:
                 raise RuntimeError(
-                    "Multiple YubiKey's detected, exiting becuase this is unsupported"
+                    "Multiple YubiKey's detected, exiting because this is unsupported"
                 )
         elif (
             not self._ykman_is_installed()
@@ -374,7 +376,7 @@ class CLI:
             "--mfa-profile",
             type=str,
             default=mfa_profile_arg,
-            help="Named AWS profile containg the mfa_serial for use in obtaining temporary credentials.",
+            help="Named AWS profile containing the mfa_serial for use in obtaining temporary credentials.",
         )
 
         try:
